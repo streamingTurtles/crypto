@@ -19,3 +19,6 @@ npm-debug.log*
 
 # editor
 .vscode/
+
+# local development smoke tests
+local-tests/

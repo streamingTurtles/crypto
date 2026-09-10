@@ -1,11 +1,8 @@
-import dotenv from 'dotenv'
 import app from './app.js'
+import { env } from './config/env.js'
 
-dotenv.config()
-
-const HOST = process.env.HOST || '127.0.0.1'
-const PORT = process.env.PORT || 3020
-
-app.listen(PORT, HOST, () => {
-  console.log(`API running at http://${HOST}:${PORT}`)
+app.listen(env.port, env.host, () => {
+  console.log(
+    `API running at http://${env.host}:${env.port}`
+  )
 })

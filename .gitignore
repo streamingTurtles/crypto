@@ -24,7 +24,5 @@ npm-debug.log*
 local-tests/
 
 # other files & folders to ignore
-.backup_files/
-XRPL_Object_Tokenization_One_Page_Pitch.png
-XRPL_Object_Tokenization_One_Page_Pitch.pptx
-~$XRPL_Object_Tokenization_One_Page_Pitch.pptx
+Notes
+

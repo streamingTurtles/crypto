@@ -22,3 +22,7 @@ npm-debug.log*
 
 # local development smoke tests
 local-tests/
+
+# other files & folders to ignore
+Notes
+

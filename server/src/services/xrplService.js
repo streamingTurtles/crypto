@@ -1,11 +1,12 @@
+import { env } from '../config/env.js'
 import xrpl from 'xrpl'
 
 const XRPL_TESTNET_URL =
-  process.env.XRPL_TESTNET_URL ||
+  process.env.xrplTestnetUrl ||
   'wss://s.altnet.rippletest.net:51233'
 
 async function withXrplClient(operation) {
-  const client = new xrpl.Client(XRPL_TESTNET_URL)
+  const client = new xrpl.Client(env.xrplTestnetUrl)
 
   try {
     await client.connect()

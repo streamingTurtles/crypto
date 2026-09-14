@@ -1,11 +1,32 @@
-import dotenv from 'dotenv'
 import app from './app.js'
+import { env } from './config/env.js'
+import {
+  checkDatabaseConnection
+} from './db/pool.js'
 
-dotenv.config()
+async function startServer() {
+  try {
+    const databaseStatus =
+      await checkDatabaseConnection()
 
-const HOST = process.env.HOST || '127.0.0.1'
-const PORT = process.env.PORT || 3020
+    console.log(
+      'PostgreSQL connected:',
+      databaseStatus.current_time
+    )
 
-app.listen(PORT, HOST, () => {
-  console.log(`API running at http://${HOST}:${PORT}`)
-})
+    app.listen(env.port, env.host, () => {
+      console.log(
+        `API running at http://${env.host}:${env.port}`
+      )
+    })
+  } catch (error) {
+    console.error(
+      'Unable to start application:',
+      error
+    )
+
+    process.exit(1)
+  }
+}
+
+startServer()

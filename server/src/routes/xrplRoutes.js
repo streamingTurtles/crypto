@@ -1,10 +1,18 @@
+
 import { Router } from 'express'
 import {
   getServerInfo,
   getAccountInfo
 } from '../services/xrplService.js'
 
+
+import requireAuth from '../middleware/requireAuth.js'
+
+
 const router = Router()
+
+// every route defined after this line requires authentication
+router.use(requireAuth) // Apply authentication middleware to all XRPL routes
 
 router.get('/server-info', async (req, res) => {
   try {

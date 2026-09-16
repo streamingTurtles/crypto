@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 
+import AuthLoading from './components/AuthLoading.jsx'
+import LoginPage from './components/LoginPage.jsx'
+import AuthenticatedHeader from './components/AuthenticatedHeader.jsx'
+import ApplicationStatus from './components/ApplicationStatus.jsx'
+import XrplServerStatus from './components/XrplServerStatus.jsx'
+import AccountLookup from './components/AccountLookup.jsx'
+
 function App() {
   const [health, setHealth] = useState(null)
 
@@ -34,63 +41,12 @@ function App() {
     }
   }
 
-  async function loadHealth() {
-    try {
-      const response = await fetch('/api/health')
 
-      const data = await readResponse(response)
 
-      if (!response.ok) {
-        throw new Error(
-          data.message || 'Health request failed'
-        )
-      }
 
-      setHealth(data)
-    } catch (error) {
-      console.error('Health request error:', error)
 
-      setHealth({
-        status: 'error',
-        service: 'API unavailable'
-      })
-    }
-  }
 
-  async function checkAuthentication() {
-    try {
-      setAuthLoading(true)
-      setAuthError(null)
 
-      const response = await fetch(
-        '/api/auth/me',
-        {
-          credentials: 'include'
-        }
-      )
-
-      const data = await readResponse(response)
-
-      if (!response.ok) {
-        setUser(null)
-        return
-      }
-
-      setUser(data.user)
-    } catch (error) {
-      console.error(
-        'Authentication check error:',
-        error
-      )
-
-      setUser(null)
-      setAuthError(
-        'Unable to check authentication status'
-      )
-    } finally {
-      setAuthLoading(false)
-    }
-  }
 
   async function login(event) {
     event.preventDefault()
@@ -115,7 +71,6 @@ function App() {
           })
         }
       )
-
       const data = await readResponse(response)
 
       if (!response.ok) {
@@ -124,9 +79,10 @@ function App() {
             'Invalid email or password'
         )
       }
-
       setUser(data.user)
       setPassword('')
+
+      await loadServerInfo()
     } catch (error) {
       console.error('Login error:', error)
 
@@ -134,6 +90,13 @@ function App() {
       setAuthError(error.message)
     }
   }
+
+
+
+
+
+
+
 
   async function logout() {
     try {
@@ -144,7 +107,6 @@ function App() {
           credentials: 'include'
         }
       )
-
       const data = await readResponse(response)
 
       if (!response.ok) {
@@ -152,7 +114,6 @@ function App() {
           data.message || 'Logout failed'
         )
       }
-
       setUser(null)
       setServerInfo(null)
       setServerError(null)
@@ -164,6 +125,12 @@ function App() {
       setAuthError(error.message)
     }
   }
+
+
+
+
+
+
 
   async function loadServerInfo() {
     setServerInfo(null)
@@ -197,6 +164,12 @@ function App() {
     }
   }
 
+
+
+
+
+
+
   async function lookupAccount(event) {
     event.preventDefault()
 
@@ -210,7 +183,6 @@ function App() {
           credentials: 'include'
         }
       )
-
       const data = await readResponse(response)
 
       if (!response.ok) {
@@ -218,299 +190,206 @@ function App() {
           data.message || 'Account lookup failed'
         )
       }
-
       setAccountData(data)
     } catch (error) {
       console.error(
         'Account lookup error:',
         error
       )
-
       setAccountError(error.message)
     }
   }
 
-  useEffect(() => {
-    loadHealth()
-    checkAuthentication()
-  }, [])
 
-  useEffect(() => {
-    if (user) {
-      loadServerInfo()
-    } else {
-      setServerInfo(null)
-      setServerError(null)
+
+
+useEffect(() => {
+  async function loadInitialData() {
+    try {
+      const response = await fetch('/api/health')
+
+      const text = await response.text()
+
+      let data = {}
+
+      if (text) {
+        try {
+          data = JSON.parse(text)
+        } catch {
+          data = {
+            message: text
+          }
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || 'Health request failed'
+        )
+      }
+
+      setHealth(data)
+    } catch (error) {
+      console.error('Health request error:', error)
+
+      setHealth({
+        status: 'error',
+        service: 'API unavailable'
+      })
     }
-  }, [user])
 
-  if (authLoading) {
-    return (
-      <main>
-        <h1>Streaming Turtles Crypto</h1>
-        <p>Checking authentication...</p>
-      </main>
-    )
-  }
+    try {
+      const response = await fetch(
+        '/api/auth/me',
+        {
+          credentials: 'include'
+        }
+      )
 
-  if (!user) {
-    return (
-      <main>
-        <h1>Streaming Turtles Crypto</h1>
+      const text = await response.text()
 
-        <p>
-          Tokenize the objects around you.
-        </p>
+      let data = {}
 
-        {health && (
-          <p>
-            API:{' '}
-            <strong>
-              {health.status}
-            </strong>
-          </p>
-        )}
+      if (text) {
+        try {
+          data = JSON.parse(text)
+        } catch {
+          data = {
+            message: text
+          }
+        }
+      }
 
-        <section>
-          <h2>Sign In</h2>
+      if (!response.ok) {
+        setUser(null)
+        return
+      }
 
-          <form onSubmit={login}>
-            <div>
-              <label htmlFor="email">
-                Email
-              </label>
-
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(event) =>
-                  setEmail(event.target.value)
-                }
-                autoComplete="email"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password">
-                Password
-              </label>
-
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(event) =>
-                  setPassword(
-                    event.target.value
-                  )
-                }
-                autoComplete="current-password"
-                required
-              />
-            </div>
-
-            <button type="submit">
-              Sign In
-            </button>
-          </form>
-
-          {authError && (
-            <p>
-              Error: {authError}
-            </p>
-          )}
-        </section>
-      </main>
-    )
-  }
-
-  return (
-    <main>
-      <header>
-        <h1>Streaming Turtles Crypto</h1>
-
-        <p>
-          Signed in as{' '}
-          <strong>
-            {user.displayName}
-          </strong>
-          {' — '}
-          {user.email}
-        </p>
-
-        <button
-          type="button"
-          onClick={logout}
-        >
-          Sign Out
-        </button>
-      </header>
-
-      <section>
-        <h2>Application Status</h2>
-
-        {health ? (
-          <p>
-            API:{' '}
-            <strong>
-              {health.status}
-            </strong>
-            {' - '}
-            {health.service}
-          </p>
-        ) : (
-          <p>Checking API...</p>
-        )}
-      </section>
-
-      <section>
-        <h2>XRPL Testnet Status</h2>
-
-        {serverError && (
-          <p>
-            XRPL Error: {serverError}
-          </p>
-        )}
-
-        {!serverInfo &&
-          !serverError && (
-            <p>
-              Loading XRPL server
-              information...
-            </p>
-          )}
-
-        {serverInfo && (
-          <div>
-            <p>
-              Network:{' '}
-              <strong>
-                {serverInfo.network}
-              </strong>
-            </p>
-
-            <p>
-              Server State:{' '}
-              <strong>
-                {
-                  serverInfo.server
-                    ?.server_state
-                }
-              </strong>
-            </p>
-
-            <p>
-              Server Version:{' '}
-              <strong>
-                {
-                  serverInfo.server
-                    ?.build_version
-                }
-              </strong>
-            </p>
-
-            <p>
-              Validated Ledger:{' '}
-              <strong>
-                {
-                  serverInfo.server
-                    ?.validated_ledger?.seq
-                }
-              </strong>
-            </p>
-
-            <p>
-              Ledger Age:{' '}
-              <strong>
-                {
-                  serverInfo.server
-                    ?.validated_ledger?.age
-                }
-              </strong>
-            </p>
-          </div>
-        )}
-      </section>
-
-      <section>
-        <h2>XRPL Account Lookup</h2>
-
-        <form onSubmit={lookupAccount}>
-          <label htmlFor="accountAddress">
-            XRPL Testnet Address
-          </label>
-
-          <input
-            id="accountAddress"
-            type="text"
-            value={accountAddress}
-            onChange={(event) =>
-              setAccountAddress(
-                event.target.value
-              )
+      setUser(data.user)
+      try {
+          const xrplResponse = await fetch(
+            '/api/xrpl/server-info',
+            {
+              credentials: 'include'
             }
-            placeholder="r..."
-            required
-          />
+          )
+          const xrplText = await xrplResponse.text()
+          let xrplData = {}
+          if (xrplText) {
+            try {
+              xrplData = JSON.parse(xrplText)
+            } catch {
+              xrplData = {
+                message: xrplText
+              }
+            }
+          }
+          if (!xrplResponse.ok) {
+            throw new Error(
+              xrplData.message ||
+                `XRPL request failed: ${xrplResponse.status}`
+            )
+          }
+          setServerInfo(xrplData)
+        } catch (error) {
+                console.error(
+                  'XRPL server info error:',
+                  error
+                )
+                setServerError(error.message)
+              }
 
-          <button type="submit">
-            Look Up Account
-          </button>
-        </form>
 
-        {accountError && (
-          <p>
-            Error: {accountError}
-          </p>
-        )}
+    } catch (error) {
+      console.error(
+        'Authentication check error:',
+        error
+      )
 
-        {accountData && (
-          <div>
-            <p>
-              Account:{' '}
-              <strong>
-                {accountData.account}
-              </strong>
-            </p>
+      setUser(null)
+      setAuthError(
+        'Unable to check authentication status'
+      )
+    } finally {
+      setAuthLoading(false)
+    }
+  }
 
-            <p>
-              XRP Balance:{' '}
-              <strong>
-                {accountData.balanceXrp}
-              </strong>
-            </p>
+  loadInitialData()
+}, [])
 
-            <p>
-              Balance Drops:{' '}
-              {accountData.balanceDrops}
-            </p>
 
-            <p>
-              Sequence:{' '}
-              {accountData.sequence}
-            </p>
 
-            <p>
-              Owner Count:{' '}
-              {accountData.ownerCount}
-            </p>
 
-            <p>
-              Flags:{' '}
-              {accountData.flags}
-            </p>
 
-            <p>
-              Ledger Index:{' '}
-              {accountData.ledgerIndex}
-            </p>
-          </div>
-        )}
-      </section>
-    </main>
+
+
+
+
+  // useEffect(() => {
+  //   if (user) {
+  //     loadServerInfo()
+  //   } else {
+  //     setServerInfo(null)
+  //     setServerError(null)
+  //   }
+  // }, [user])
+
+
+
+
+
+if (authLoading) {
+  return <AuthLoading />
+}
+
+
+
+
+if (!user) {
+  return (
+    <LoginPage
+      health={health}
+      email={email}
+      password={password}
+      authError={authError}
+      onEmailChange={setEmail}
+      onPasswordChange={setPassword}
+      onLogin={login}
+    />
   )
+}
+
+
+
+
+
+
+
+
+return (
+  <main>
+    <AuthenticatedHeader
+      user={user}
+      onLogout={logout}
+    />
+
+    <ApplicationStatus health={health} />
+
+    <XrplServerStatus
+      serverInfo={serverInfo}
+      serverError={serverError}
+    />
+
+    <AccountLookup
+      accountAddress={accountAddress}
+      accountData={accountData}
+      accountError={accountError}
+      onAccountAddressChange={setAccountAddress}
+      onLookupAccount={lookupAccount}
+    />
+  </main>
+)
 }
 
 export default App

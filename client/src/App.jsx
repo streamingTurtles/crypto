@@ -41,63 +41,12 @@ function App() {
     }
   }
 
-  async function loadHealth() {
-    try {
-      const response = await fetch('/api/health')
 
-      const data = await readResponse(response)
 
-      if (!response.ok) {
-        throw new Error(
-          data.message || 'Health request failed'
-        )
-      }
 
-      setHealth(data)
-    } catch (error) {
-      console.error('Health request error:', error)
 
-      setHealth({
-        status: 'error',
-        service: 'API unavailable'
-      })
-    }
-  }
 
-  async function checkAuthentication() {
-    try {
-      setAuthLoading(true)
-      setAuthError(null)
 
-      const response = await fetch(
-        '/api/auth/me',
-        {
-          credentials: 'include'
-        }
-      )
-
-      const data = await readResponse(response)
-
-      if (!response.ok) {
-        setUser(null)
-        return
-      }
-
-      setUser(data.user)
-    } catch (error) {
-      console.error(
-        'Authentication check error:',
-        error
-      )
-
-      setUser(null)
-      setAuthError(
-        'Unable to check authentication status'
-      )
-    } finally {
-      setAuthLoading(false)
-    }
-  }
 
   async function login(event) {
     event.preventDefault()
@@ -122,7 +71,6 @@ function App() {
           })
         }
       )
-
       const data = await readResponse(response)
 
       if (!response.ok) {
@@ -131,9 +79,10 @@ function App() {
             'Invalid email or password'
         )
       }
-
       setUser(data.user)
       setPassword('')
+
+      await loadServerInfo()
     } catch (error) {
       console.error('Login error:', error)
 
@@ -141,6 +90,13 @@ function App() {
       setAuthError(error.message)
     }
   }
+
+
+
+
+
+
+
 
   async function logout() {
     try {
@@ -151,7 +107,6 @@ function App() {
           credentials: 'include'
         }
       )
-
       const data = await readResponse(response)
 
       if (!response.ok) {
@@ -159,7 +114,6 @@ function App() {
           data.message || 'Logout failed'
         )
       }
-
       setUser(null)
       setServerInfo(null)
       setServerError(null)
@@ -171,6 +125,12 @@ function App() {
       setAuthError(error.message)
     }
   }
+
+
+
+
+
+
 
   async function loadServerInfo() {
     setServerInfo(null)
@@ -204,6 +164,12 @@ function App() {
     }
   }
 
+
+
+
+
+
+
   async function lookupAccount(event) {
     event.preventDefault()
 
@@ -217,7 +183,6 @@ function App() {
           credentials: 'include'
         }
       )
-
       const data = await readResponse(response)
 
       if (!response.ok) {
@@ -225,35 +190,161 @@ function App() {
           data.message || 'Account lookup failed'
         )
       }
-
       setAccountData(data)
     } catch (error) {
       console.error(
         'Account lookup error:',
         error
       )
-
       setAccountError(error.message)
     }
   }
 
-  useEffect(() => {
-    loadHealth()
-    checkAuthentication()
-  }, [])
 
-  useEffect(() => {
-    if (user) {
-      loadServerInfo()
-    } else {
-      setServerInfo(null)
-      setServerError(null)
+
+
+useEffect(() => {
+  async function loadInitialData() {
+    try {
+      const response = await fetch('/api/health')
+
+      const text = await response.text()
+
+      let data = {}
+
+      if (text) {
+        try {
+          data = JSON.parse(text)
+        } catch {
+          data = {
+            message: text
+          }
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || 'Health request failed'
+        )
+      }
+
+      setHealth(data)
+    } catch (error) {
+      console.error('Health request error:', error)
+
+      setHealth({
+        status: 'error',
+        service: 'API unavailable'
+      })
     }
-  }, [user])
+
+    try {
+      const response = await fetch(
+        '/api/auth/me',
+        {
+          credentials: 'include'
+        }
+      )
+
+      const text = await response.text()
+
+      let data = {}
+
+      if (text) {
+        try {
+          data = JSON.parse(text)
+        } catch {
+          data = {
+            message: text
+          }
+        }
+      }
+
+      if (!response.ok) {
+        setUser(null)
+        return
+      }
+
+      setUser(data.user)
+      try {
+          const xrplResponse = await fetch(
+            '/api/xrpl/server-info',
+            {
+              credentials: 'include'
+            }
+          )
+          const xrplText = await xrplResponse.text()
+          let xrplData = {}
+          if (xrplText) {
+            try {
+              xrplData = JSON.parse(xrplText)
+            } catch {
+              xrplData = {
+                message: xrplText
+              }
+            }
+          }
+          if (!xrplResponse.ok) {
+            throw new Error(
+              xrplData.message ||
+                `XRPL request failed: ${xrplResponse.status}`
+            )
+          }
+          setServerInfo(xrplData)
+        } catch (error) {
+                console.error(
+                  'XRPL server info error:',
+                  error
+                )
+                setServerError(error.message)
+              }
+
+
+    } catch (error) {
+      console.error(
+        'Authentication check error:',
+        error
+      )
+
+      setUser(null)
+      setAuthError(
+        'Unable to check authentication status'
+      )
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  loadInitialData()
+}, [])
+
+
+
+
+
+
+
+
+
+  // useEffect(() => {
+  //   if (user) {
+  //     loadServerInfo()
+  //   } else {
+  //     setServerInfo(null)
+  //     setServerError(null)
+  //   }
+  // }, [user])
+
+
+
+
 
 if (authLoading) {
   return <AuthLoading />
 }
+
+
+
 
 if (!user) {
   return (
@@ -268,6 +359,13 @@ if (!user) {
     />
   )
 }
+
+
+
+
+
+
+
 
 return (
   <main>

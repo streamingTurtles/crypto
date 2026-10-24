@@ -68,3 +68,11 @@ export async function createUser({
 
   return result.rows[0]
 }
+
+export async function findUserWithPasswordById(id) {
+  const result = await pool.query('SELECT id, password_hash FROM users WHERE id = $1', [id])
+  return result.rows[0] || null
+}
+export async function updatePasswordHash(id, passwordHash) {
+  await pool.query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2', [passwordHash, id])
+}

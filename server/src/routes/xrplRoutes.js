@@ -47,16 +47,17 @@ router.get('/account/:address', async (req, res) => {
 })
 
 // Read-only, allowlisted RPC requests. Never proxy arbitrary commands or URLs.
-const rpcAllowlist = new Set(['server_info', 'fee', 'ledger', 'account_info', 'account_tx', 'account_lines', 'account_objects', 'book_offers', 'amm_info', 'tx'])
+const rpcAllowlist = new Set(['server_info', 'fee', 'ledger', 'account_info', 'account_tx', 'account_lines', 'account_objects', 'book_offers', 'amm_info', 'tx', 'account_nfts'])
 router.post('/rpc', async (req, res) => {
   const { command, ...params } = req.body || {}
   if (!rpcAllowlist.has(command) || Object.keys(params).length > 12) {
     return res.status(400).json({ status: 'error', message: 'RPC command or parameters not permitted' })
   }
-  if (['account_info', 'account_tx', 'account_lines', 'account_objects'].includes(command) &&
+  if (['account_info', 'account_tx', 'account_lines', 'account_objects', 'account_nfts'].includes(command) &&
       !xrpl.isValidClassicAddress(params.account)) {
     return res.status(400).json({ status: 'error', message: 'Valid classic account address required' })
   }
+  if (command === 'account_nfts') params.limit = Math.min(Math.max(Number(params.limit) || 20, 1), 100)
   if (command === 'account_tx') params.limit = Math.min(Math.max(Number(params.limit) || 10, 1), 20)
   if (command === 'book_offers') params.limit = Math.min(Math.max(Number(params.limit) || 10, 1), 20)
   if (command === 'account_objects') params.limit = Math.min(Math.max(Number(params.limit) || 10, 1), 20)

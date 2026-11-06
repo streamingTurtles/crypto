@@ -14,6 +14,7 @@ import {
 
 import healthRoutes from './routes/healthRoutes.js'
 import xrplRoutes from './routes/xrplRoutes.js'
+import hackathonRoutes from './routes/hackathonRoutes.js'
 import authRoutes from './routes/authRoutes.js'
 
 const app = express()
@@ -67,5 +68,6 @@ app.use(passport.session())
 app.use('/api/health', healthRoutes)
 app.use('/api/auth', authRoutes)
 app.use('/api/xrpl', xrplRoutes)
+app.use('/api/hackathon', hackathonRoutes)
 
 export default app

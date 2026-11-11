@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import LoginPage from './components/LoginPage.jsx'
-import XrplServerStatus from './components/XrplServerStatus.jsx'
+import XrplServerStatus from './components/XRPLServerStatus.jsx'
 import AccountLookup from './components/AccountLookup.jsx'
 import TokenizationStudio from './components/TokenizationStudio.jsx'
 

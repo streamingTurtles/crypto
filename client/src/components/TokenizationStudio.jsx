@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { isInstalled, getAddress, getNetwork, submitTransaction } from '@gemwallet/api'
+import WalletAssetGallery from './WalletAssetGallery.jsx'
 
 async function request(url, options) {
   const res = await fetch(url, { credentials: 'include', ...options, headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) } })
@@ -108,6 +109,22 @@ export default function TokenizationStudio({ onOpenRpc }) {
       <label>Public XRPL r-address<input value={address} onChange={e=>{setAddress(e.target.value);setProvider('');setNetwork('');setMessage('Address edited: reconnect your wallet to authorize minting.')}} placeholder="r..." autoComplete="off"/></label><p className="token-muted">{provider ? `Connected through ${provider === 'gem'?'GemWallet':'Xaman'} · ${network}` : 'Entering an address alone does not authorize NFT minting.'}</p>
       {signLink && <div className="sign-box"><a href={signLink} target="_blank" rel="noreferrer">Open Xaman approval request</a>{qr && <img alt="Xaman signing QR code" src={qr}/>}</div>}
     </section>
+
+
+
+  {/* connecting the gallery component to the existing studion */}
+  {provider && network === 'Testnet' && address && (
+    <WalletAssetGallery
+      key={`${provider}:${network}:${address}`}
+      address={address}
+      onOpenRpc={onOpenRpc}
+    />
+  )}
+
+
+
+
+
     <section className="panel"><h2>2 · Describe your physical item</h2><form className="token-form" onSubmit={tokenize}><label>Item name<input maxLength={100} required value={name} onChange={e=>setName(e.target.value)}/></label><label>Description<textarea rows={3} maxLength={1200} value={description} onChange={e=>setDescription(e.target.value)}/></label><label>Condition / grading disclosure<input maxLength={80} value={condition} onChange={e=>setCondition(e.target.value)}/></label><label>Public HTTPS photo URL (optional)<input type="url" placeholder="https://..." value={photoUrl} onChange={e=>setPhotoUrl(e.target.value)}/></label><p className="token-muted">This is owner-supplied information, not independent authentication. NFT metadata must be publicly hosted before a public-facing mint.</p><button disabled={busy || !provider || network !== 'Testnet'} type="submit">{busy?'Processing…':'3 · Tokenize — request wallet signature'}</button></form></section>
     <section className="panel"><h2>4 · Ledger verification</h2><p role="status">{message}</p>{hash && <><p>Transaction hash: <code className="hash-text">{hash}</code></p><button onClick={()=>onOpenRpc({ command: 'tx', transaction: hash })}>Verify transaction in RPC</button> <button onClick={()=>onOpenRpc({ command: 'account_nfts', account: address, limit: 20 })}>View wallet NFTs in RPC</button></>}{verified && <p>Validated: {String(verified.validated)} · Engine result: {verified.result?.meta?.TransactionResult || 'see RPC'} · NFT ID: {verified.nftId || 'Find minted token using account_nfts'}</p>}</section>
   </div>

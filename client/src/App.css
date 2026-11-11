@@ -1,2 +1,42 @@
 .shell{max-width:1450px;margin:auto;padding:22px;min-height:100vh}.topbar,.panel{background:linear-gradient(125deg,rgba(3,26,53,.94),rgba(4,35,67,.85));border:1px solid rgba(80,151,219,.48);box-shadow:0 12px 30px #00152c60;border-radius:15px;backdrop-filter:blur(10px)}.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 18px;margin-bottom:22px}.brand{display:flex;align-items:center;gap:12px;min-width:220px}.brand img{width:48px;height:55px;object-fit:contain}.brand strong{font-size:1.05rem;letter-spacing:.08em}.brand small{display:block;letter-spacing:.45em;text-align:center}nav{display:flex;gap:6px;flex-wrap:wrap}nav button,.identity button{background:transparent;border-color:transparent}nav button.active{background:#145ab1;border-color:#397dca}.identity{display:flex;align-items:center;gap:12px}.panel{padding:22px;margin-bottom:18px}.hero{padding:42px 30px}.hero p{font-size:1.1rem}.dashboard-grid{display:grid;grid-template-columns:1fr 1.2fr .8fr;gap:16px}.dashboard-grid .panel{min-width:0}.actions{display:grid;gap:12px}.form-panel{max-width:680px;margin:20px auto}.console-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.template-row{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.template-row button{font-size:.85rem;padding:8px}.response{white-space:pre-wrap;overflow:auto;max-height:480px;min-height:330px;padding:14px;background:#04192e;border:1px solid #356da2;border-radius:10px;font-size:.84rem}.login-shell{display:flex;align-items:center;justify-content:center}.login-shell main{width:min(100%,540px);background:#061d39e8;border:1px solid #3679bf;border-radius:18px;padding:30px}.login-shell form{display:grid;gap:5px}footer{text-align:center;padding:25px;color:#b3d4ee;font-size:.85rem}@media(max-width:1050px){.dashboard-grid{grid-template-columns:1fr 1fr}.topbar{flex-wrap:wrap}.console-grid{grid-template-columns:1fr}}@media(max-width:650px){.shell{padding:10px}.dashboard-grid{grid-template-columns:1fr}.topbar{flex-direction:column;align-items:stretch}.identity{justify-content:space-between}.brand{min-width:0}.panel{padding:16px}.hero{padding:22px}.console-grid{grid-template-columns:1fr}}
 .token-studio{max-width:1050px;margin:auto}.token-steps,.wallet-buttons{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}.token-steps span{padding:8px 12px;border:1px solid #397dca;border-radius:20px}.token-form{display:grid;gap:12px}.token-form label,.token-studio label{display:grid;gap:7px;margin:12px 0}.token-muted{color:#b3d4ee;font-size:.9rem}.sign-box{padding:16px;border:1px solid #397dca;border-radius:12px}.sign-box img{display:block;width:220px;max-width:100%;margin-top:10px}.hash-text{overflow-wrap:anywhere}.wallet-buttons button:disabled{opacity:.5;cursor:not-allowed}
+
+
+.nft-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.nft-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  text-align: left;
+}
+
+.nft-card[aria-pressed="true"] {
+  outline: 3px solid #7bc7ff;
+  outline-offset: 2px;
+}
+
+.nft-placeholder {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  background: #04192e;
+  color: #b3d4ee;
+}
+
+.nft-details {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid #47749f;
+}
+
+.wallet-gallery button:disabled {
+  opacity: .5;
+  cursor: wait;
+}

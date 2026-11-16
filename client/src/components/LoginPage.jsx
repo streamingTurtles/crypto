@@ -9,7 +9,7 @@ function LoginPage({
 }) {
   return (
     <main>
-      <h1>Streaming Turtles Crypto</h1>
+      <img src="/st_logo_1.png" alt="Streaming Turtles" style={{width:70,height:95,objectFit:"contain"}} /><h1>Streaming Turtles Crypto</h1>
 
       <p>
         Tokenize the objects around you.

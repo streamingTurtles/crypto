@@ -64,3 +64,14 @@ export async function verifyUserCredentials(
     createdAt: user.created_at
   }
 }
+
+export async function changeUserPassword(id, currentPassword, newPassword) {
+  const { findUserWithPasswordById, updatePasswordHash } = await import('../repositories/userRepository.js')
+  const user = await findUserWithPasswordById(id)
+  if (!user || !await argon2.verify(user.password_hash, currentPassword)) {
+    const error = new Error('Current password is incorrect')
+    error.status = 400
+    throw error
+  }
+  await updatePasswordHash(id, await argon2.hash(newPassword))
+}

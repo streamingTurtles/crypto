@@ -3,7 +3,8 @@ import passport from 'passport'
 import rateLimit from 'express-rate-limit'
 
 import {
-  registerUser
+  registerUser,
+  changeUserPassword
 } from '../services/authService.js'
 
 import requireAuth from '../middleware/requireAuth.js'
@@ -105,6 +106,21 @@ router.get(
     })
   }
 )
+
+router.post('/change-password', requireAuth, authLimiter, async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {}
+  if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' ||
+      newPassword.length < 12 || newPassword.length > 256 || currentPassword === newPassword) {
+    return res.status(400).json({ status: 'error', message: 'Provide a different new password of 12–256 characters' })
+  }
+  try {
+    await changeUserPassword(req.user.id, currentPassword, newPassword)
+    // Keep the current session; invalidate other sessions via a future centralized session-revocation feature.
+    return res.json({ status: 'ok', message: 'Password updated' })
+  } catch (error) {
+    return res.status(error.status || 500).json({ status: 'error', message: error.status ? error.message : 'Unable to change password' })
+  }
+})
 
 router.post(
   '/logout',

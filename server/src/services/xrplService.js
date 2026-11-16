@@ -62,3 +62,6 @@ export async function getAccountInfo(address) {
     }
   })
 }
+export async function requestReadOnlyRpc(request) {
+  return withXrplClient((client) => client.request(request))
+}

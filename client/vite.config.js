@@ -5,6 +5,9 @@ export default defineConfig({
   plugins: [react()],
 
   server: {
+      allowedHosts: [
+    'accounting-pants-boat-has.trycloudflare.com',
+  ],
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:3020',

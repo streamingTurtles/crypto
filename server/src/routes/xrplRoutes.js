@@ -57,7 +57,15 @@ router.post('/rpc', async (req, res) => {
       !xrpl.isValidClassicAddress(params.account)) {
     return res.status(400).json({ status: 'error', message: 'Valid classic account address required' })
   }
-  if (command === 'account_nfts') params.limit = Math.min(Math.max(Number(params.limit) || 20, 1), 100)
+  // if (command === 'account_nfts') params.limit = Math.min(Math.max(Number(params.limit) || 20, 1), 100)
+  // ensures the forwarded limit is a whole number between 20 and 100, defaulting to 20 for missing or nonnumeric values. Your gallery already requests 20
+  if (command === 'account_nfts') {
+  const requestedLimit = Number(params.limit)
+
+  params.limit = Number.isFinite(requestedLimit)
+    ? Math.min(Math.max(Math.trunc(requestedLimit), 20), 100)
+    : 20
+ }
   if (command === 'account_tx') params.limit = Math.min(Math.max(Number(params.limit) || 10, 1), 20)
   if (command === 'book_offers') params.limit = Math.min(Math.max(Number(params.limit) || 10, 1), 20)
   if (command === 'account_objects') params.limit = Math.min(Math.max(Number(params.limit) || 10, 1), 20)

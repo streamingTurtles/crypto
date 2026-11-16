@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+// 18B.2 - removed below, and replaced with above - to address - request lifecycle controls
+// import { useState } from 'react'
+
 
 function decodeUri(hex) {
   if (!hex) return 'No URI recorded'
@@ -23,13 +26,31 @@ export default function WalletAssetGallery({ address, onOpenRpc }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
+  const [galleryColumns, setGalleryColumns] = useState(1)
 
-  async function loadPage(refresh = false) {
-    if (busy) return
+
+  const activeRequest = useRef(null)
+  const loadMoreTarget = useRef(null)
+
+    useEffect(() => {
+    return () => {
+        const controller = activeRequest.current
+        activeRequest.current = null
+        controller?.abort()
+    }
+    }, [])
+
+
+
+    const loadPage = useCallback (async (refresh = false) => {
+    if (activeRequest.current) return
+    const append = loaded && !refresh
+    if (append && (!snapshot?.hash || marker === null)) return
+    const controller = new AbortController()
+    activeRequest.current = controller
     setBusy(true)
     setError('')
 
-    const append = loaded && !refresh
     const request = {
       command: 'account_nfts',
       account: address,
@@ -43,10 +64,16 @@ export default function WalletAssetGallery({ address, onOpenRpc }) {
       const response = await fetch('/api/xrpl/rpc', {
         method: 'POST',
         credentials: 'include',
+        signal: controller.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request)
       })
       const data = await response.json()
+
+      if (
+      controller.signal.aborted ||
+      activeRequest.current !== controller
+      ) return
 
       if (!response.ok) {
         throw new Error(data.message || `Request failed (${response.status})`)
@@ -66,6 +93,14 @@ export default function WalletAssetGallery({ address, onOpenRpc }) {
         throw new Error('Ledger snapshot changed. Refresh the gallery.')
       }
 
+        if (
+        append &&
+        result.marker != null &&
+        JSON.stringify(result.marker) === JSON.stringify(marker)
+        ) {
+        throw new Error('Pagination did not advance. Refresh the gallery.')
+        }
+
       setItems(previous => {
         const combined = append
           ? [...previous, ...result.account_nfts]
@@ -79,12 +114,48 @@ export default function WalletAssetGallery({ address, onOpenRpc }) {
       setMarker(result.marker ?? null)
       setLoaded(true)
       if (!append) setSelected(null)
-    } catch (e) {
-      setError(`${e.message} Retry, or refresh to use the latest ledger.`)
-    } finally {
-      setBusy(false)
-    }
-  }
+        } catch (e) {
+        if (
+        controller.signal.aborted ||
+        activeRequest.current !== controller
+        ) return
+
+        setError(`${e.message} Retry, or refresh to use the latest ledger.`)
+        } finally {
+            if (activeRequest.current === controller) {
+            activeRequest.current = null
+            setBusy(false)
+            }
+        }
+  }, [address, loaded, marker, snapshot])
+        useEffect(() => {
+        if (loaded) return
+        const timer = setTimeout(() => {
+        void loadPage(true)
+        }, 0)
+        return () => clearTimeout(timer)
+        }, [loaded, loadPage])
+        useEffect(() => {
+        const target = loadMoreTarget.current
+
+        if (!target || !loaded || marker === null || busy || error) return
+
+        const observer = new IntersectionObserver(
+            entries => {
+            if (entries.some(entry => entry.isIntersecting)) {
+                void loadPage()
+            }
+            },
+            {
+            root: null,
+            rootMargin: '0px 0px 200px 0px',
+            threshold: 0
+            }
+        )
+        observer.observe(target)
+
+        return () => observer.disconnect()
+        }, [loaded, marker, busy, error, loadPage])
 
   return (
     <section className="panel wallet-gallery">
@@ -103,12 +174,47 @@ export default function WalletAssetGallery({ address, onOpenRpc }) {
       <p role="status">
         {loaded
           ? `${items.length} NFT(s) loaded · Ledger ${snapshot.index}`
-          : 'Load the NFTs held by this connected wallet.'}
+          : busy
+           ? 'Loading NFTs held by this connected wallet…'
+           : 'NFTs have not loaded. Use Load wallet NFTs to retry.'}
       </p>
 
       {loaded && items.length === 0 && <p>This wallet holds no NFTs.</p>}
 
-      <div className="nft-grid">
+
+
+        <div className="gallery-view-controls" role="group" aria-label="Gallery layout">
+        <button
+            type="button"
+            disabled={galleryColumns === 1}
+            onClick={() => setGalleryColumns(value => Math.max(1, value - 1))}
+        >
+        Larger tiles
+        </button>
+
+        <button
+            type="button"
+            disabled={galleryColumns === 6}
+            onClick={() => setGalleryColumns(value => Math.min(6, value + 1))}
+        >
+        Smaller tiles
+        </button>
+
+        <button
+            type="button"
+            aria-pressed={galleryColumns === 1}
+            onClick={() => setGalleryColumns(1)}
+        >
+        Single column
+        </button>
+        </div>
+        <div
+        className={`nft-grid${galleryColumns > 1 ? ' nft-grid-compact' : ''}`}
+        style={{
+            '--gallery-columns': galleryColumns,
+            '--gallery-mobile-columns': Math.min(galleryColumns, 4)
+        }}
+        >
         {items.map(item => (
           <button
             key={item.NFTokenID}
@@ -122,6 +228,16 @@ export default function WalletAssetGallery({ address, onOpenRpc }) {
           </button>
         ))}
       </div>
+
+
+
+        <div
+        ref={loadMoreTarget}
+        aria-hidden="true"
+        style={{ height: 1 }}
+        />
+
+
 
       {loaded && marker !== null && (
         <button disabled={busy} onClick={() => loadPage()}>

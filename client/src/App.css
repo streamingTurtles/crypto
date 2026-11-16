@@ -2,9 +2,16 @@
 .token-studio{max-width:1050px;margin:auto}.token-steps,.wallet-buttons{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}.token-steps span{padding:8px 12px;border:1px solid #397dca;border-radius:20px}.token-form{display:grid;gap:12px}.token-form label,.token-studio label{display:grid;gap:7px;margin:12px 0}.token-muted{color:#b3d4ee;font-size:.9rem}.sign-box{padding:16px;border:1px solid #397dca;border-radius:12px}.sign-box img{display:block;width:220px;max-width:100%;margin-top:10px}.hash-text{overflow-wrap:anywhere}.wallet-buttons button:disabled{opacity:.5;cursor:not-allowed}
 
 
-.nft-grid {
+/* .nft-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+} */
+
+.nft-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--gallery-columns, 1), minmax(0, 1fr));
   gap: 14px;
   margin: 18px 0;
 }
@@ -24,7 +31,8 @@
 .nft-placeholder {
   display: grid;
   place-items: center;
-  aspect-ratio: 4 / 3;
+  /* aspect-ratio: 4 / 3; */
+  aspect-ratio: 1;
   border-radius: 8px;
   background: #04192e;
   color: #b3d4ee;
@@ -39,4 +47,51 @@
 .wallet-gallery button:disabled {
   opacity: .5;
   cursor: wait;
+}
+
+
+.gallery-view-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.gallery-view-controls button {
+  min-height: 44px;
+}
+
+.wallet-gallery .gallery-view-controls button:disabled {
+  cursor: not-allowed;
+}
+
+.nft-grid-compact .nft-card {
+  padding: 6px;
+  gap: 6px;
+}
+
+.nft-grid-compact .nft-card > .hash-text {
+  display: none;
+}
+
+.nft-grid-compact .nft-card > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .8rem;
+}
+
+.nft-placeholder {
+  min-width: 0;
+  overflow: hidden;
+  font-size: clamp(.65rem, 2vw, .9rem);
+}
+
+@media (max-width: 650px) {
+  .nft-grid {
+    grid-template-columns:
+      repeat(var(--gallery-mobile-columns, 1), minmax(0, 1fr));
+    gap: 8px;
+  }
 }

@@ -18,7 +18,13 @@ function decodeUri(hex) {
   }
 }
 
-export default function WalletAssetGallery({ address, onOpenRpc }) {
+export default function WalletAssetGallery({
+   address,
+   onOpenRpc,
+   galleryColumns,
+   setGalleryColumns
+  })
+  {
   const [items, setItems] = useState([])
   const [snapshot, setSnapshot] = useState(null)
   const [marker, setMarker] = useState(null)
@@ -26,9 +32,6 @@ export default function WalletAssetGallery({ address, onOpenRpc }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
-  const [galleryColumns, setGalleryColumns] = useState(1)
-
-
   const activeRequest = useRef(null)
   const loadMoreTarget = useRef(null)
 
@@ -179,7 +182,19 @@ export default function WalletAssetGallery({ address, onOpenRpc }) {
            : 'NFTs have not loaded. Use Load wallet NFTs to retry.'}
       </p>
 
-      {loaded && items.length === 0 && <p>This wallet holds no NFTs.</p>}
+      {loaded && !busy && !error && marker === null && items.length === 0 && (
+        <div className="nft-empty-state" role="status">
+            <h3>No NFTs found on XRPL Testnet</h3>
+            <p>
+            This connected account holds no NFTs in the validated ledger snapshot
+            checked.
+            </p>
+            <p className="token-muted">
+            Describe an item below to mint your first NFT, or use Refresh NFTs
+            to check again.
+            </p>
+        </div>
+        )}
 
 
 

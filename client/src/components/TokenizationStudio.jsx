@@ -27,8 +27,13 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 export default function TokenizationStudio({
   wallet,
   onWalletChange,
-  onOpenRpc
-}) {
+  onOpenRpc,
+  walletVerified,
+  captureWalletSession,
+  beginWalletInteraction,
+  galleryColumns,
+  setGalleryColumns
+  }) {
   const { provider, address, network } = wallet
   const mounted = useRef(false)
 
@@ -62,36 +67,48 @@ export default function TokenizationStudio({
       .catch(() => {})
   }, [])
 
+
   async function connectGem() {
+    const endWalletInteraction = beginWalletInteraction()
+    const sessionIsCurrent = captureWalletSession()
+    const canContinue = () => (
+        mounted.current &&
+        sessionIsCurrent()
+      )
+
     setBusy(true)
     setMessage('Checking GemWallet…')
+
     try {
       const installed = await isInstalled()
+      if (!canContinue()) return
       if (!installed.result?.isInstalled) {
         throw new Error('Install the GemWallet browser extension first.')
       }
       const n = await getNetwork()
+      if (!canContinue()) return
       if (n.type !== 'response' || n.result?.network !== 'Testnet') {
         throw new Error('Switch GemWallet to XRPL Testnet before connecting.')
       }
       const a = await getAddress()
+      if (!canContinue()) return
       if (a.type !== 'response' || !a.result?.address) {
         throw new Error('Wallet connection was not approved.')
       }
-
-      if (!mounted.current) return
       onWalletChange({
         provider: 'gem',
         address: a.result.address,
         network: 'Testnet'
       })
       setMessage('GemWallet connected. Ready to prepare NFT metadata.')
-    } catch (e) {
-      setMessage(e.message)
+    } catch (error) {
+      if (canContinue()) setMessage(error.message)
     } finally {
-      setBusy(false)
+      endWalletInteraction()
+      if (mounted.current) setBusy(false)
     }
   }
+
 
   async function pollXaman(uuid, mode) {
     for (let i = 0; i < 60; i++) {
@@ -169,45 +186,102 @@ export default function TokenizationStudio({
     throw new Error('Transaction not yet validated. Use the transaction hash in RPC console to check again.')
   }
 
-  async function tokenize(event) {
-    event.preventDefault()
-    if (!provider || network !== 'Testnet') {
-      setMessage('Connect a Testnet wallet first.')
-      return
+  function checkTokenizationReady() {
+    let notice = ''
+
+    if (provider !== 'gem' || !address) {
+      notice =
+        'Press "Connect GemWallet" before you can tokenize an asset.'
+    } else if (network !== 'Testnet') {
+      notice =
+        'Select Testnet in GemWallet, then press "Connect GemWallet" ' +
+        'before you can tokenize an asset.'
+    } else if (!walletVerified) {
+      notice =
+        'Press "Verify wallet connection" before you can tokenize an asset. ' +
+        'If the account has changed, reconnect using "Connect GemWallet".'
     }
-    setBusy(true)
-    setHash('')
-    setVerified(null)
-    try {
-      const meta = await post('/api/hackathon/metadata', { name, description, condition, photoUrl })
-      if (provider === 'gem') {
-        const n = await getNetwork()
-        const a = await getAddress()
-        if (n.result?.network !== 'Testnet' || a.result?.address !== address) {
-          throw new Error('GemWallet network/account changed. Reconnect before minting.')
-        }
-        setMessage('Approve NFTokenMint in GemWallet…')
-        const response = await submitTransaction({
-          transaction: {
-            TransactionType: 'NFTokenMint',
-            Account: address,
-            NFTokenTaxon: 0,
-            Flags: 8,
-            URI: meta.hexUri
+    if (!notice) return true
+    setMessage(notice)
+    window.alert(notice)
+    return false
+  }
+    async function tokenize(event) {
+      event.preventDefault()
+      if (busy || !checkTokenizationReady()) return
+      const endWalletInteraction = beginWalletInteraction()
+      const sessionIsCurrent = captureWalletSession()
+      const canContinue = () => mounted.current && sessionIsCurrent()
+      setBusy(true)
+      setHash('')
+      setVerified(null)
+      try {
+            const meta = await post(
+            '/api/hackathon/metadata',
+            { name, description, condition, photoUrl }
+          )
+
+        if (!canContinue()) return
+
+        if (provider === 'gem') {
+          const n = await getNetwork()
+          if (!canContinue()) return
+
+          const a = await getAddress()
+          if (!canContinue()) return
+
+          if (
+            n.type !== 'response' ||
+            a.type !== 'response' ||
+            n.result?.network !== 'Testnet' ||
+            a.result?.address !== address
+          ) {
+            throw new Error(
+              'GemWallet network/account changed. Reconnect before minting.'
+            )
           }
-        })
-        if (response.type !== 'response' || !response.result?.hash) {
-          throw new Error('GemWallet mint was rejected or not submitted.')
+
+          setMessage('Approve NFTokenMint in GemWallet…')
+
+          const response = await submitTransaction({
+            transaction: {
+              TransactionType: 'NFTokenMint',
+              Account: address,
+              NFTokenTaxon: 0,
+              Flags: 8,
+              URI: meta.hexUri
+            }
+          })
+
+          if (response.type !== 'response' || !response.result?.hash) {
+            if (!canContinue()) return
+            throw new Error('GemWallet mint was rejected or not submitted.')
+          }
+
+          // A returned hash must not be treated as an undone transaction.
+          if (!canContinue()) {
+            console.info(
+              'A prior wallet operation returned a transaction hash. ' +
+              'Disconnect does not cancel a submitted transaction.',
+              {
+                account: address,
+                network,
+                hash: response.result.hash
+              }
+            )
+            return
+          }
+
+          await verify(response.result.hash)
+        } else {
+          await xaman('mint', meta.hexUri)
         }
-        await verify(response.result.hash)
-      } else {
-        await xaman('mint', meta.hexUri)
+      } catch (error) {
+        if (canContinue()) setMessage(error.message)
+      } finally {
+        endWalletInteraction()
+        if (mounted.current) setBusy(false)
       }
-    } catch (e) {
-      setMessage(e.message)
-    } finally {
-      setBusy(false)
-    }
   }
   return (
     <div className="token-studio">
@@ -223,9 +297,14 @@ export default function TokenizationStudio({
 
         <h2>1 · Connect your wallet</h2>
         <div className="wallet-buttons">
-          <button disabled={busy} onClick={connectGem}>
-            Connect GemWallet
-          </button>
+                  <button
+                    disabled={busy || provider === 'gem'}
+                    onClick={connectGem}
+                  >
+                    {provider === 'gem'
+                      ? 'GemWallet connection retained'
+                      : 'Connect GemWallet'}
+                  </button>
           <button
             disabled={busy || !xamanEnabled}
             title={xamanEnabled
@@ -236,7 +315,19 @@ export default function TokenizationStudio({
             Connect Xaman {!xamanEnabled && '🔒 Coming soon'}
           </button>
         </div>
-
+                {busy && !provider && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onWalletChange({ provider: '', address: '', network: '' })
+                    setMessage(
+                      'Connection attempt canceled. Close any outstanding GemWallet popup.'
+                    )
+                  }}
+                >
+                  Cancel connection attempt
+                </button>
+                )}
         <label>
           Public XRPL r-address
           <input
@@ -259,22 +350,6 @@ export default function TokenizationStudio({
             : 'Entering an address alone does not authorize NFT minting.'}
         </p>
 
-        {provider && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              onWalletChange({ provider: '', address: '', network: '' })
-              setHash('')
-              setVerified(null)
-              setSignLink('')
-              setQr('')
-              setMessage('Wallet disconnected from this application.')
-            }}
-          >
-            Disconnect wallet
-          </button>
-        )}
 
         {signLink && (
           <div className="sign-box">
@@ -288,6 +363,8 @@ export default function TokenizationStudio({
 
       {provider && network === 'Testnet' && address && (
         <WalletAssetGallery
+          galleryColumns={galleryColumns}
+          setGalleryColumns={setGalleryColumns}
           key={`${provider}:${network}:${address}`}
           address={address}
           onOpenRpc={onOpenRpc}
@@ -336,10 +413,15 @@ export default function TokenizationStudio({
             This is owner-supplied information, not independent authentication.
             NFT metadata must be publicly hosted before a public-facing mint.
           </p>
-          <button
-            disabled={busy || !provider || network !== 'Testnet'}
-            type="submit"
-          >
+            <button
+              type="submit"
+              disabled={busy}
+              onClick={event => {
+                if (!checkTokenizationReady()) {
+                  event.preventDefault()
+                }
+              }}
+            >
             {busy ? 'Processing…' : '3 · Tokenize — request wallet signature'}
           </button>
         </form>

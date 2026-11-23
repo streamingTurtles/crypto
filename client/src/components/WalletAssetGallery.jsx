@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-// 18B.2 - removed below, and replaced with above - to address - request lifecycle controls
-// import { useState } from 'react'
+import NftViewer from './NftViewer.jsx'
 
 
 function decodeUri(hex) {
@@ -141,7 +140,9 @@ export default function WalletAssetGallery({
         useEffect(() => {
         const target = loadMoreTarget.current
 
-        if (!target || !loaded || marker === null || busy || error) return
+        if (!target || !loaded || marker === null || busy || error || selected) {
+        return
+        }
 
         const observer = new IntersectionObserver(
             entries => {
@@ -158,7 +159,7 @@ export default function WalletAssetGallery({
         observer.observe(target)
 
         return () => observer.disconnect()
-        }, [loaded, marker, busy, error, loadPage])
+        }, [loaded, marker, busy, error, loadPage, selected])
 
   return (
     <section className="panel wallet-gallery">
@@ -234,6 +235,8 @@ export default function WalletAssetGallery({
           <button
             key={item.NFTokenID}
             className="nft-card"
+                type="button"
+                aria-haspopup="dialog"
             aria-pressed={selected?.NFTokenID === item.NFTokenID}
             onClick={() => setSelected(item)}
           >
@@ -264,28 +267,18 @@ export default function WalletAssetGallery({
         <p className="token-muted">All NFTs in this ledger snapshot loaded.</p>
       )}
 
-      {selected && (
-        <div className="nft-details">
-          <h3>Selected NFT · Ledger record</h3>
-          <p className="hash-text"><strong>ID:</strong> {selected.NFTokenID}</p>
-          <p className="hash-text"><strong>Issuer:</strong> {selected.Issuer}</p>
-          <p>Taxon: {selected.NFTokenTaxon} · Flags: {selected.Flags}</p>
-          <p className="hash-text">
-            <strong>Recorded URI:</strong> {decodeUri(selected.URI)}
-          </p>
-          <p className="token-muted">
-            Selecting this NFT does not authorize metadata edits.
-          </p>
-          <button onClick={() => onOpenRpc({
-            command: 'account_nfts',
-            account: address,
-            ledger_hash: snapshot.hash,
-            limit: 20
-          })}>
-            Inspect wallet snapshot in RPC
-          </button>
-        </div>
-      )}
+        {selected && (
+        <NftViewer
+            item={selected}
+            items={items}
+            account={address}
+            snapshot={snapshot}
+            decodedUri={decodeUri(selected.URI)}
+            onSelect={setSelected}
+            onClose={() => setSelected(null)}
+            onOpenRpc={onOpenRpc}
+        />
+        )}
     </section>
   )
 }

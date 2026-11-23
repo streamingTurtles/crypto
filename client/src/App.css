@@ -148,6 +148,8 @@
 
 .nft-viewer-placeholder {
   width: 100%;
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
 }
 
 .nft-viewer-record > p:first-child {

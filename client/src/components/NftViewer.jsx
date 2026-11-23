@@ -13,6 +13,7 @@ export default function NftViewer({
 }) {
   const dialogRef = useRef(null)
   const closeButtonRef = useRef(null)
+  const swipeStart = useRef(null)
   const titleId = useId()
 
   const index = items.findIndex(
@@ -49,15 +50,99 @@ export default function NftViewer({
     if (hasNext) onSelect(items[index + 1])
   }
 
-  function handleKeyDown(event) {
+    function cancelSwipe() {
+    swipeStart.current = null
+    }
+
+    function handleTouchStart(event) {
+    if (event.touches.length !== 1) {
+        cancelSwipe()
+        return
+    }
+
+    const touch = event.touches[0]
+
+    swipeStart.current = {
+        identifier: touch.identifier,
+        x: touch.clientX,
+        y: touch.clientY,
+        time: event.timeStamp,
+        nftId: item.NFTokenID
+    }
+    }
+
+    function handleTouchMove(event) {
+    const start = swipeStart.current
+    if (!start) return
+
+    if (event.touches.length !== 1) {
+        cancelSwipe()
+        return
+    }
+
+    const touch = Array.from(event.touches).find(
+        candidate => candidate.identifier === start.identifier
+    )
+
+    if (!touch) {
+        cancelSwipe()
+        return
+    }
+
+    const horizontal = Math.abs(touch.clientX - start.x)
+    const vertical = Math.abs(touch.clientY - start.y)
+
+    // Once the gesture becomes vertical, leave it to browser scrolling.
+    if (vertical > 12 && vertical > horizontal) {
+        cancelSwipe()
+    }
+    }
+
+    function handleTouchEnd(event) {
+    const start = swipeStart.current
+    cancelSwipe()
+
     if (
-      event.defaultPrevented ||
-      event.altKey ||
-      event.ctrlKey ||
-      event.metaKey ||
-      event.shiftKey
+        !start ||
+        event.touches.length !== 0 ||
+        start.nftId !== item.NFTokenID
     ) {
-      return
+        return
+    }
+
+    const touch = Array.from(event.changedTouches).find(
+        candidate => candidate.identifier === start.identifier
+    )
+
+    if (!touch) return
+
+    const horizontal = touch.clientX - start.x
+    const vertical = touch.clientY - start.y
+    const duration = event.timeStamp - start.time
+
+    if (
+        duration > 800 ||
+        Math.abs(horizontal) < 60 ||
+        Math.abs(horizontal) < Math.abs(vertical) * 1.5
+    ) {
+        return
+    }
+
+    if (horizontal < 0) {
+        showNext()
+    } else {
+        showPrevious()
+    }
+    }
+    function handleKeyDown(event) {
+    if (
+        event.defaultPrevented ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey
+    ) {
+        return
     }
 
     if (event.key === 'ArrowLeft') {
@@ -68,7 +153,6 @@ export default function NftViewer({
       showNext()
     }
   }
-
   return createPortal(
     <dialog
       ref={dialogRef}
@@ -107,13 +191,23 @@ export default function NftViewer({
 
       <div className="nft-viewer-content">
         <div>
-          <div className="nft-placeholder nft-viewer-placeholder">
-            Photo pending
-          </div>
+                <div
+                className="nft-placeholder nft-viewer-placeholder"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={cancelSwipe}
+                >
+                Photo pending
+                </div>
           <p className="token-muted">
             Photographs and metadata loading will follow.
           </p>
         </div>
+        <p className="token-muted">
+        On touchscreens, swipe left or right across the photo area to browse
+        loaded NFTs.
+        </p>
 
         <div className="nft-viewer-record">
           <p className="hash-text">
